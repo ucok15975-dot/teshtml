@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineMax - Bioskop Premium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* === VARIABEL & TEMA === */
+        :root {
+            --bg-dark: #020c1b;
+            --bg-card: #0a192f;
+            --bg-lighter: #112240;
+            --accent-blue: #00d4ff;
+            --accent-glow: #0077be;
+            --text-main: #e6f1ff;
+            --text-dim: #8892b0;
+            --red-seat: #ff4757;
+            --green-seat: #2ed573;
+            --selected-seat: #ffa502;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; scroll-behavior: smooth; }
+        body { background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; }
+        .font-title { font-family: 'Orbitron', sans-serif; }
+
+        /* === ANIMASI LATAR & GRAFITI === */
+        .bg-animation {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #0d1f3c, var(--bg-dark));
+        }
+        /* Efek Grfiti/Abstrak bergerak */
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(80px);
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.15), transparent);
+            animation: moveOrb 20s infinite alternate;
+        }
+        @keyframes moveOrb {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(100px, -50px) scale(1.2); }
+        }
+
+        /* === SLIDER ATAS (Animasi ke Kiri) === */
+        .slider-container {
+            overflow: hidden; white-space: nowrap; margin-top: 80px; height: 450px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        .slider-track {
+            display: flex; width: fit-content;
+            animation: scrollLeft 40s linear infinite;
+        }
+        .slide {
+            height: 450px; width: 800px; margin-right: 30px; position: relative;
+            border-radius: 10px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        .slide img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: opacity 0.3s; }
+        .slide:hover img { opacity: 1; }
+        .slide-info {
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 40px;
+            background: linear-gradient(to top, rgba(2,12,27,1), transparent);
+        }
+        @keyframes scrollLeft {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* === KARTU FILM === */
+        .movie-card {
+            background: var(--bg-card); border-radius: 15px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+        }
+        .movie-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.15);
+            border-color: var(--accent-blue);
+        }
+        .movie-poster { width: 100%; height: 380px; object-fit: cover; }
+
+        /* === TOMBOL === */
+        .btn-primary {
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-glow));
+            color: #000; font-weight: 700; padding: 12px; width: 100%;
+            border: none; border-radius: 8px; cursor: pointer;
+            transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-primary:hover { box-shadow: 0 0 20px var(--accent-blue); transform: scale(1.02); }
+        
+        .btn-admin {
+            background: transparent; border: 1px solid var(--red-seat); color: var(--red-seat);
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: 0.3s;
+        }
+        .btn-admin:hover { background: rgba(255, 71, 87, 0.1); }
+
+        /* === MODAL & FORM === */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+            display: none; justify-content: center; align-items: center; z-index: 999;
+        }
+        .modal-content {
+            background: var(--bg-card); border: 1px solid var(--bg-lighter);
+            border-radius: 20px; width: 90%; max-width: 800px; max-height: 90vh;
+            overflow-y: auto; position: relative; padding: 30px;
+            animation: popIn 0.3s ease-out;
+        }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .input-style {
+            width: 100%; padding: 12px; background: var(--bg-dark);
+            border: 1px solid var(--bg-lighter); border-radius: 8px;
+            color: var(--text-main); outline: none; transition: 0.3s;
+        }
+        .input-style:focus { border-color: var(--accent-blue); }
+
+        /* === STRUKTUR KURSI === */
+        .screen {
+            width: 60%; height: 8px; background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+            margin: 0 auto 40px; box-shadow: 0 0 20px var(--accent-blue); border-radius: 50%;
+        }
+        .seat-grid { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        .seat-row { display: flex; gap: 10px; align-items: center; }
+        .seat-label { width: 20px; text-align: center; font-size: 12px; color: var(--text-dim); }
+        .seat {
+            width: 30px; height: 30px; border-radius: 6px 6px 8px 8px;
+            cursor: pointer; transition: all 0.2s; font-size: 10px;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+        /* Warna Kursi */
+        .seat.available { background: var(--green-seat); box-shadow: 0 0 5px rgba(46,213,115,0.3); }
+        .seat.available:hover { transform: scale(1.2); box-shadow: 0 0 15px var(--green-seat); }
+        .seat.taken { background: var(--red-seat); cursor: not-allowed; opacity: 0.6; }
+        .seat.selected { background: var(--selected-seat); box-shadow: 0 0 15px var(--selected-seat); transform: scale(1.1); color: #000; }
+
+        /* === ADMIN SPECIFIC === */
+        .admin-panel { background: var(--bg-lighter); padding: 20px; border-radius: 10px; border-left: 4px solid var(--accent-blue); }
+        .movie-list-admin { max-height: 300px; overflow-y: auto; }
+        .movie-item-admin {
+            background: var(--bg-dark); padding: 10px; margin-bottom: 8px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.05);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Background Animation -->
+    <div class="bg-animation">
+        <div class="orb" style="width: 600px; height: 600px; top: -200px; left: -200px;"></div>
+        <div class="orb" style="width: 500px; height: 500px; bottom: -100px; right: -100px; animation-delay: -10s;"></div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="fixed top-0 left-0 w-full px-6 py-4 flex justify-between items-center z-50" style="background: rgba(2, 12, 27, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <h1 class="font-title text-2xl tracking-widest" style="color: var(--accent-blue);">CINEMAX</h1>
+        <div class="flex gap-4 items-center">
+            <span id="nav-username" class="text-sm hidden text-sky-300">Halo, <span id="nav-uname-display"></span></span>
+            
+            <!-- Tombol User Biasa -->
+            <button id="btn-login" onclick="openModal('login-modal')" class="px-4 py-2 border border-sky-500/50 rounded text-sm hover:bg-sky-500/10 transition">Login</button>
+            <button id="btn-register" onclick="openModal('register-modal')" class="px-4 py-2 bg-sky-500/20 border border-sky-500/50 rounded text-sm hover:bg-sky-500/30 transition">Daftar</button>
+            
+            <!-- Tombol Logout (Muncul saat login) -->
+            <button id="btn-logout" onclick="logout()" class="px-4 py-2 border border-red-500/50 text-red-400 rounded text-sm hover:bg-red-500/10 transition hidden">Logout</button>
+        </div>
+    </nav>
+
+    <!-- ================= SESI 1: TAMPILAN USER ================= -->
+    <main id="user-view">
+        <!-- Slider Header -->
+        <div class="slider-container">
+            <div class="slider-track" id="slider-track">
+                <!-- Konten Slider Diisi JS -->
+            </div>
+        </div>
+
+        <!-- Daftar Film Tayang -->
+        <div class="container mx-auto px-6 py-16">
+            <h2 class="font-title text-3xl mb-10 text-center">SEDANG TAYANG</h2>
+            <div id="movie-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <!-- Kartu Film Diisi JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= SESI 2: TAMPILAN ADMIN ================= -->
+    <main id="admin-view" class="hidden pt-24 container mx-auto px-6">
+        <div class="flex justify-between items-center mb-10">
+            <h1 class="font-title text-3xl" style="color: var(--accent-blue);">ADMIN DASHBOARD</h1>
+            <button onclick="exitAdmin()" class="px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/50 rounded hover:bg-red-600/40 transition">Keluar Admin Mode</button>
+        </div>
+
+        <!-- Statistik -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="admin-panel">
+                <p class="text-sm text-sky-400 mb-1">Total Pendapatan</p>
+                <h3 id="stat-revenue" class="text-2xl font-bold">Rp 0</h3>
+            </div>
+            <div class="admin-panel">
+                <p class="text-sm text-sky-400 mb-1">Tiket Terjual</p>
+                <h3 id="stat-tickets" class="text-2xl font-bold">0</h3>
+            </div>
+            <div class="admin-panel">
+                <p class="text-sm text-sky-400 mb-1">Total Film Aktif</p>
+                <h3 id="stat-movies" class="text-2xl font-bold">0</h3>
+            </div>
+        </div>
+
+        <!-- Manajemen Film (TAMBAHAN REQ) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <!-- Form Tambah/Edit Film -->
+            <div class="admin-panel">
+                <h3 class="font-title text-xl mb-4 text-sky-300">MANAJEMEN FILM</h3>
+                <form id="movie-form" onsubmit="saveMovie(event)" class="space-y-4">
+                    <input type="hidden" id="edit-id">
+                    <input type="text" id="m-title" placeholder="Judul Film" class="input-style" required>
+                    <input type="text" id="m-image" placeholder="URL Gambar Poster" class="input-style" required>
+                    <input type="text" id="m-backdrop" placeholder="URL GambarBackdrop (Slider)" class="input-style" required>
+                    <input type="text" id="m-schedule" placeholder="Jam Tayang (pisah koma, cth: 14:00, 16:00)" class="input-style" required>
+                    <input type="number" id="m-price" placeholder="Harga Tiket" class="input-style" required>
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn-primary flex-1">SIMPAN FILM</button>
+                        <button type="button" onclick="resetForm()" class="btn-admin">BATAL</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Daftar Film Saat Ini -->
+            <div class="admin-panel">
+                <h3 class="font-title text-xl mb-4 text-sky-300">DAFTAR FILM AKTIF</h3>
+                <div id="admin-movie-list" class="movie-list-admin space-y-2">
+                    <!-- Diisi JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Pengaturan Kursi Manual -->
+        <div class="admin-panel">
+            <h3 class="font-title text-xl mb-4 text-sky-300">PENGATURAN KURSI MANUAL</h3>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <select id="admin-movie-select" class="input-style w-auto" onchange="loadAdminSeats()"></select>
+                <select id="admin-time-select" class="input-style w-auto" onchange="loadAdminSeats()"></select>
+            </div>
+            <div class="flex justify-center mb-4"><div class="screen"></div></div>
+            <div id="admin-seat-grid" class="seat-grid">
+                <!-- Kursi Diisi JS -->
+            </div>
+            <p class="text-center text-xs text-gray-500 mt-4">Klik kursi untuk mengubah status ketersediaan.</p>
+        </div>
+    </main>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content max-w-md">
+            <h3 class="font-title text-2xl text-sky-400 mb-6">LOGIN</h3>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <input type="email" id="login-email" placeholder="Email" class="input-style" required>
+                <input type="password" id="login-pass" placeholder="Password" class="input-style" required>
+                <button type="submit" class="btn-primary">MASUK</button>
+            </form>
+            <button onclick="closeModal('login-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-white text-2xl">&times;</button>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content max-w-md">
+            <h3 class="font-title text-2xl text-sky-400 mb-6">DAFTAR AKUN</h3>
+            <form onsubmit="handleRegister(event)" class="space-y-4">
+                <input type="text" id="reg-name" placeholder="Nama Lengkap" class="input-style" required>
+                <input type="email" id="reg-email" placeholder="Email" class="input-style" required>
+                <input type="password" id="reg-pass" placeholder="Password" class="input-style" required>
+                <button type="submit" class="btn-primary">DAFTAR</button>
+                <p class="text-xs text-gray-500 text-center">*Akun yang dibuat di sini hanya untuk pembelian tiket.</p>
+            </form>
+            <button onclick="closeModal('register-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-white text-2xl">&times;</button>
+        </div>
+    </div>
+
+    <!-- Booking Modal (Pilih Kursi) -->
+    <div id="booking-modal" class="modal">
+        <div class="modal-content max-w-3xl">
+            <button onclick="closeModal('booking-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-white text-2xl">&times;</button>
+            
+            <div class="text-center mb-6">
+                <h3 id="b-title" class="font-title text-2xl text-sky-400">JUDUL FILM</h3>
+                <p id="b-schedule" class="text-gray-400">Jadwal: --:--</p>
+            </div>
+
+            <div class="flex justify-center mb-4"><div class="screen"></div></div>
+            <div id="booking-seats" class="seat-grid mb-6"></div>
+
+            <div class="flex justify-center gap-6 text-xs mb-6">
+                <div class="flex items-center gap-2"><div class="w-4 h-4 rounded" style="background:var(--green-seat)"></div> Tersedia</div>
+                <div class="flex items-center gap-2"><div class="w-4 h-4 rounded" style="background:var(--red-seat)"></div> Terisi</div>
+                <div class="flex items-center gap-2"><div class="w-4 h-4 rounded" style="background:var(--selected-seat)"></div> Pilihan</div>
+            </div>
+
+            <!-- Pembayaran -->
+            <div class="bg-slate-900/50 p-4 rounded-lg mb-4">
+                <h4 class="font-bold mb-3 text-sky-300">Metode Pembayaran:</h4>
+                <div id="pay-methods" class="flex flex-wrap gap-3 justify-center mb-4">
+                    <button class="pay-opt px-4 py-2 border rounded-full text-sm hover:bg-sky-500/20" onclick="selectPay(this, 'QRIS')">QRIS</button>
+                    <button class="pay-opt px-4 py-2 border rounded-full text-sm hover:bg-sky-500/20" onclick="selectPay(this, 'DANA')">DANA</button>
+                    <button class="pay-opt px-4 py-2 border rounded-full text-sm hover:bg-sky-500/20" onclick="selectPay(this, 'OVO')">OVO</button>
+                    <button class="pay-opt px-4 py-2 border rounded-full text-sm hover:bg-sky-500/20" onclick="selectPay(this, 'BANK')">Transfer Bank</button>
+                </div>
+                <div class="flex justify-between items-center pt-4 border-t border-gray-700">
+                    <div>
+                        <span class="text-sm text-gray-400">Kursi:</span>
+                        <span id="b-seats-info" class="text-yellow-400 font-bold ml-2">-</span>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-400">Total:</span>
+                        <span id="b-price-info" class="text-green-400 text-xl font-bold ml-2">Rp 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="processPayment()" class="btn-primary text-lg py-4">BAYAR SEKARANG</button>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="modal">
+        <div class="modal-content max-w-sm text-center">
+            <div class="text-green-500 text-6xl mb-4">✔</div>
+            <h3 class="font-title text-2xl text-green-400 mb-2">BERHASIL</h3>
+            <p class="text-gray-400 mb-6">Tiket telah berhasil dibeli!</p>
+            <button onclick="closeModal('success-modal')" class="btn-primary">TUTUP</button>
+        </div>
+    </div>
+
+    <script>
+        // === KONFIGURASI & DATA AWAL ===
+        // Admin Secret Login (Tidak tertera di UI)
+        const ADMIN_SECRET = { email: "admin@cinemax.id", pass: "admin123" };
+
+        // Inisialisasi Data dari LocalStorage atau Default
+        let movies = JSON.parse(localStorage.getItem('cinemax_movies')) || [
+            { id: 1, title: "Titanic", image: "https://image.tmdb.org/t/p/w500/9xjZS2rlVxm8SFx8kPC3aIGCOYQ.jpg", backdrop: "https://image.tmdb.org/t/p/original/yDHYTfA3R0jFYba16jBB1ef8oIt.jpg", price: 50000, schedule: ["14:00", "20:00"] },
+            { id: 2, title: "Fast and Furious", image: "https://image.tmdb.org/t/p/w500/1E5baAaEse26fej7uHcjOgEE2t2.jpg", backdrop: "https://image.tmdb.org/t/p/original/3cFFF1zz0YK8sTPV7pGPLINA8A8.jpg", price: 55000, schedule: ["14:00", "20:00"] },
+            { id: 3, title: "The Conjuring", image: "https://image.tmdb.org/t/p/w500/wVYREutTvI2tmxr6ujrHT704wGF.jpg", backdrop: "https://image.tmdb.org/t/p/original/ng6SSB3JdLMjRqnDjo4VFTX9jQ6.jpg", price: 50000, schedule: ["14:00", "20:00"] },
+            { id: 4, title: "Avenger", image: "https://image.tmdb.org/t/p/w500/lmZFxXgJE3vgrciwuDib0N8CfQo.jpg", backdrop: "https://image.tmdb.org/t/p/original/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg", price: 70000, schedule: ["14:00", "20:00"] },
+            { id: 5, title: "Avatar", image: "https://image.tmdb.org/t/p/w500/jRXYjXNq0Cs2TcJjLkki24MLp7u.jpg", backdrop: "https://image.tmdb.org/t/p/original/s16H6tpK2utvwDtzZ8Qy4qm5Emw.jpg", price: 65000, schedule: ["14:00", "20:00"] },
+            { id: 6, title: "Aquaman", image: "https://image.tmdb.org/t/p/w500/5Kg76ldv7VxeX9YlcQXiowHgdX6.jpg", backdrop: "https://image.tmdb.org/t/p/original/ndlQ2Cuc3cjTL68lDpQkArNnrqb.jpg", price: 60000, schedule: ["14:00", "20:00"] },
+            { id: 7, title: "Deadpool", image: "https://image.tmdb.org/t/p/w500/4Zb4Z2Hv7WNKsCvK9YljS1gLPim.jpg", backdrop: "https://image.tmdb.org/t/p/original/5JCef1PR70jYzyZRN9RgdwYPRdq.jpg", price: 60000, schedule: ["14:00", "20:00"] }
+        ];
+
+        let users = JSON.parse(localStorage.getItem('cinemax_users')) || []; // User Biasa
+        let sales = JSON.parse(localStorage.getItem('cinemax_sales')) || { tickets: 0, revenue: 0 };
+        let seats = JSON.parse(localStorage.getItem('cinemax_seats')) || {}; // Format: { "1_14:00": { "A1": true } }
+        let currentUser = JSON.parse(localStorage.getItem('cinemax_current')) || null; // {name, email, isAdmin}
+
+        let tempBooking = { movie: null, time: null, seats: [], pay: null };
+
+        // === INISIALISASI APLIKASI ===
+        window.onload = () => {
+            checkAuth();
+            renderUserView();
+            renderAdminMovieList();
+            updateStats();
+        };
+
+        // === FUNGSI RENDER (TAMPILAN) ===
+        
+        // Render Tampilan User (Slider + Grid)
+        function renderUserView() {
+            // Slider
+            const slider = document.getElementById('slider-track');
+            let slidesHTML = '';
+            // Loop 2x for seamless scroll
+            movies.forEach(m => {
+                slidesHTML += `
+                    <div class="slide">
+                        <img src="${m.backdrop}" alt="${m.title}">
+                        <div class="slide-info">
+                            <h2 class="font-title text-4xl">${m.title}</h2>
+                        </div>
+                    </div>`;
+            });
+            slider.innerHTML = slidesHTML + slidesHTML;
+
+            // Movie Grid
+            const grid = document.getElementById('movie-grid');
+            grid.innerHTML = '';
+            movies.forEach(m => {
+                grid.innerHTML += `
+                    <div class="movie-card">
+                        <img src="${m.image}" alt="${m.title}" class="movie-poster">
+                        <div class="p-4">
+                            <h3 class="font-title text-lg mb-2">${m.title}</h3>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                ${m.schedule.map(t => `<span class='text-xs px-2 py-1 bg-sky-900/30 rounded text-sky-300'>${t}</span>`).join('')}
+                            </div>
+                            <button class="btn-primary" onclick="openBooking(${m.id})">BELI SEKARANG</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // Render Dropdown Admin
+        function renderAdminMovieList() {
+            const select = document.getElementById('admin-movie-select');
+            const list = document.getElementById('admin-movie-list');
+            
+            select.innerHTML = movies.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
+            
+            list.innerHTML = movies.map(m => `
+                <div class="movie-item-admin">
+                    <div>
+                        <span class="font-bold text-white">${m.title}</span>
+                        <span class="text-xs text-gray-400 ml-2">Rp ${m.price.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editMovie(${m.id})" class="text-xs text-sky-400 hover:underline">Edit</button>
+                        <button onclick="deleteMovie(${m.id})" class="text-xs text-red-400 hover:underline">Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+
+            loadAdminTimes();
+        }
+
+        function loadAdminTimes() {
+            const mid = document.getElementById('admin-movie-select').value;
+            const movie = movies.find(m => m.id == mid);
+            const timeSelect = document.getElementById('admin-time-select');
+            timeSelect.innerHTML = movie.schedule.map(t => `<option value="${t}">${t}</option>`).join('');
+            loadAdminSeats();
+        }
+
+        function loadAdminSeats() {
+            const mid = document.getElementById('admin-movie-select').value;
+            const time = document.getElementById('admin-time-select').value;
+            const key = `${mid}_${time}`;
+            
+            if (!seats[key]) seats[key] = {}; // Inisialisasi jika belum ada
+
+            const rows = ['A', 'B', 'C', 'D', 'E', 'F'];
+            const cols = 8;
+            let html = '';
+
+            rows.forEach(row => {
+                html += `<div class="seat-row"><span class="seat-label">${row}</span>`;
+                for(let i=1; i<=cols; i++) {
+                    const sid = `${row}${i}`;
+                    const isTaken = seats[key][sid];
+                    html += `<div class="seat ${isTaken ? 'taken' : 'available'}" onclick="adminToggleSeat('${key}', '${sid}')">${i}</div>`;
+                }
+                html += `<span class="seat-label">${row}</span></div>`;
+            });
+            document.getElementById('admin-seat-grid').innerHTML = html;
+        }
+
+        function adminToggleSeat(key, sid) {
+            if (seats[key][sid]) seats[key][sid] = false; // Jika sudah terisi, kosongkan
+            else seats[key][sid] = true; // Jika kosong, isi
+            localStorage.setItem('cinemax_seats', JSON.stringify(seats));
+            loadAdminSeats();
+        }
+
+        // === LOGIKA AUTH ===
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+
+            // Cek Admin
+            if (email === ADMIN_SECRET.email && pass === ADMIN_SECRET.pass) {
+                currentUser = { name: "Admin", email: "admin", isAdmin: true };
+                localStorage.setItem('cinemax_current', JSON.stringify(currentUser));
+                closeModal('login-modal');
+                checkAuth();
+                enterAdmin();
+                return;
+            }
+
+            // Cek User
+            const user = users.find(u => u.email === email && u.pass === pass);
+            if (user) {
+                currentUser = { ...user, isAdmin: false };
+                localStorage.setItem('cinemax_current', JSON.stringify(currentUser));
+                closeModal('login-modal');
+                checkAuth();
+            } else {
+                alert("Login gagal! Email atau password salah.");
+            }
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+
+            if (users.find(u => u.email === email)) {
+                alert("Email sudah terdaftar!"); return;
+            }
+            users.push({ name, email, pass });
+            localStorage.setItem('cinemax_users', JSON.stringify(users));
+            alert("Registrasi berhasil! Silakan login.");
+            closeModal('register-modal');
+            openModal('login-modal');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('cinemax_current');
+            checkAuth();
+            exitAdmin();
+        }
+
+        function checkAuth() {
+            const btnL = document.getElementById('btn-login');
+            const btnR = document.getElementById('btn-register');
+            const btnO = document.getElementById('btn-logout');
+            const navU = document.getElementById('nav-username');
+
+            if (currentUser) {
+                btnL.classList.add('hidden'); btnR.classList.add('hidden');
+                btnO.classList.remove('hidden'); navU.classList.remove('hidden');
+                document.getElementById('nav-uname-display').innerText = currentUser.name;
+            } else {
+                btnL.classList.remove('hidden'); btnR.classList.remove('hidden');
+                btnO.classList.add('hidden'); navU.classList.add('hidden');
+            }
+        }
+
+        // === LOGIKA PEMBELIAN USER ===
+        function openBooking(mid) {
+            if (!currentUser || currentUser.isAdmin) {
+                alert("Anda harus login sebagai user untuk membeli.");
+                openModal('login-modal');
+                return;
+            }
+            const movie = movies.find(m => m.id === mid);
+            tempBooking = { movie, time: movie.schedule[0], seats: [], pay: null };
+            
+            // Set Default Time
+            document.getElementById('b-title').innerText = movie.title;
+            document.getElementById('b-schedule').innerText = `Jadwal: ${movie.schedule[0]}`;
+            
+            renderBookingSeats();
+            updateBookingInfo();
+            openModal('booking-modal');
+        }
+
+        function renderBookingSeats() {
+            const key = `${tempBooking.movie.id}_${tempBooking.time}`;
+            if (!seats[key]) seats[key] = {};
+            
+            const rows = ['A', 'B', 'C', 'D', 'E', 'F'];
+            const cols = 8;
+            let html = '';
+
+            rows.forEach(row => {
+                html += `<div class="seat-row"><span class="seat-label">${row}</span>`;
+                for(let i=1; i<=cols; i++) {
+                    const sid = `${row}${i}`;
+                    const isTaken = seats[key][sid];
+                    const isSelected = tempBooking.seats.includes(sid);
+                    
+                    let cls = 'available';
+                    if (isTaken) cls = 'taken';
+                    if (isSelected) cls = 'selected';
+
+                    html += `<div class="seat ${cls}" onclick="toggleSeat('${sid}', ${isTaken})">${i}</div>`;
+                }
+                html += `<span class="seat-label">${row}</span></div>`;
+            });
+            document.getElementById('booking-seats').innerHTML = html;
+        }
+
+        function toggleSeat(sid, isTaken) {
+            if (isTaken) return;
+            const idx = tempBooking.seats.indexOf(sid);
+            if (idx > -1) tempBooking.seats.splice(idx, 1);
+            else tempBooking.seats.push(sid);
+            renderBookingSeats();
+            updateBookingInfo();
+        }
+
+        function selectPay(btn, method) {
+            document.querySelectorAll('.pay-opt').forEach(b => b.classList.remove('bg-sky-500', 'text-black'));
+            btn.classList.add('bg-sky-500', 'text-black');
+            tempBooking.pay = method;
+        }
+
+        function updateBookingInfo() {
+            const total = tempBooking.seats.length * tempBooking.movie.price;
+            document.getElementById('b-seats-info').innerText = tempBooking.seats.join(', ') || '-';
+            document.getElementById('b-price-info').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+        }
+
+        function processPayment() {
+            if (tempBooking.seats.length === 0) return alert("Pilih kursi terlebih dahulu!");
+            if (!tempBooking.pay) return alert("Pilih metode pembayaran!");
+
+            const key = `${tempBooking.movie.id}_${tempBooking.time}`;
+            // Set kursi jadi terisi
+            tempBooking.seats.forEach(s => seats[key][s] = true);
+            localStorage.setItem('cinemax_seats', JSON.stringify(seats));
+
+            // Update Statistik
+            sales.tickets += tempBooking.seats.length;
+            sales.revenue += tempBooking.seats.length * tempBooking.movie.price;
+            localStorage.setItem('cinemax_sales', JSON.stringify(sales));
+
+            closeModal('booking-modal');
+            openModal('success-modal');
+        }
+
+        // === LOGIKA ADMIN CRUD ===
+        function enterAdmin() {
+            document.getElementById('user-view').classList.add('hidden');
+            document.getElementById('admin-view').classList.remove('hidden');
+            renderAdminMovieList();
+            updateStats();
+        }
+
+        function exitAdmin() {
+            document.getElementById('admin-view').classList.add('hidden');
+            document.getElementById('user-view').classList.remove('hidden');
+        }
+
+        function updateStats() {
+            document.getElementById('stat-revenue').innerText = `Rp ${sales.revenue.toLocaleString('id-ID')}`;
+            document.getElementById('stat-tickets').innerText = sales.tickets;
+            document.getElementById('stat-movies').innerText = movies.length;
+        }
+
+        function saveMovie(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const data = {
+                title: document.getElementById('m-title').value,
+                image: document.getElementById('m-image').value,
+                backdrop: document.getElementById('m-backdrop').value,
+                price: Number(document.getElementById('m-price').value),
+                schedule: document.getElementById('m-schedule').value.split(',').map(s => s.trim()),
+            };
+
+            if (id) { // Edit Mode
+                const idx = movies.findIndex(m => m.id == id);
+                movies[idx] = { ...movies[idx], ...data };
+            } else { // Add Mode
+                data.id = Date.now();
+                movies.push(data);
+            }
+
+            localStorage.setItem('cinemax_movies', JSON.stringify(movies));
+            resetForm();
+            renderUserView();
+            renderAdminMovieList();
+            alert("Film berhasil disimpan!");
+        }
+
+        function editMovie(id) {
+            const m = movies.find(m => m.id === id);
+            document.getElementById('edit-id').value = m.id;
+            document.getElementById('m-title').value = m.title;
+            document.getElementById('m-image').value = m.image;
+            document.getElementById('m-backdrop').value = m.backdrop;
+            document.getElementById('m-price').value = m.price;
+            document.getElementById('m-schedule').value = m.schedule.join(', ');
+        }
+
+        function deleteMovie(id) {
+            if(confirm("Hapus film ini?")) {
+                movies = movies.filter(m => m.id !== id);
+                localStorage.setItem('cinemax_movies', JSON.stringify(movies));
+                renderUserView();
+                renderAdminMovieList();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('movie-form').reset();
+        }
+
+        // === HELPER MODAL ===
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    </script>
+</body>
+</html>

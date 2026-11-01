@@ -1,1 +1,269 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kejar-Kejaran GPS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Figtree:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#101216">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#eef3fa;--bg2:#d9e6f7;--fg:#0e1b2c;--card:#ffffff;--mut:#5b6b82;--bd:#cdd8e8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1523;--bg2:#15305a;--fg:#eaf1fb;--card:#13243c;--mut:#8ea2bf;--bd:#243b5e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1523;--bg2:#15305a;--fg:#eaf1fb;--card:#13243c;--mut:#8ea2bf;--bd:#243b5e;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 55% at 50% 0,var(--bg2),var(--bg));background-attachment:fixed;color:var(--fg);font:500 16px Figtree,system-ui,-apple-system,"Segoe UI",sans-serif}
+#app{max-width:480px;margin:0 auto;padding:18px 18px 40px}
+small{color:var(--mut);font-size:13px;font-weight:600}
+h2,h3{margin:0}.ttl{font:400 28px 'Bowlby One',Impact,sans-serif;margin:8px 0 16px;text-align:center}
+.top{text-align:center;margin:6px 0 14px}.top h2{font:400 30px 'Bowlby One',Impact,sans-serif}
+.panel{background:var(--card);border:1px solid var(--bd);border-radius:22px;padding:16px;margin-bottom:14px;box-shadow:0 10px 30px rgba(5,15,35,.12)}
+.hero{text-align:center;margin:4px 0 8px}
+.radar{width:min(66vw,250px);height:auto;display:block;margin:0 auto 6px}
+.rg{fill:none;stroke:var(--bd);stroke-width:1.5}
+.sweep{transform-origin:120px 120px;animation:spin 5s linear infinite}
+.pulse{fill:none;stroke:#3da5ff;stroke-width:2;transform-origin:158px 78px;animation:pl 2s ease-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes pl{from{transform:scale(1);opacity:.9}to{transform:scale(3.2);opacity:0}}
+.logo{font:400 46px/.95 'Bowlby One',Impact,sans-serif;margin:0;letter-spacing:.5px}
+.logo em{font-style:normal;color:#ff4d5e}
+.sub{margin:10px auto 18px;color:var(--mut);max-width:30ch}
+.field{display:flex;align-items:center;gap:10px;background:var(--card);border:2px solid var(--bd);border-radius:18px;padding:4px 14px;margin-bottom:16px}
+.field:focus-within{border-color:#8b5cf6}
+input{width:100%;padding:12px 0;border:0;background:transparent;color:var(--fg);font:700 18px Figtree,system-ui,sans-serif;outline:0}
+input::placeholder{color:var(--mut);font-weight:500}
+button{width:100%;padding:15px;border:0;border-radius:18px;font:800 17px Figtree,system-ui,sans-serif;color:#fff;background:#3b4a63;margin-top:12px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.3);transition:transform .08s,box-shadow .08s}
+button:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+button:focus-visible,input:focus-visible,[type=range]:focus-visible{outline:3px solid #8b5cf6;outline-offset:2px}
+button small{display:block;color:#ffffffcc;font-weight:600;font-size:12px;margin-top:2px}
+button.g{background:#16a34a}button.y{background:#ca8a04}button.r{background:#dc2626}button.p{background:#7c3aed}
+button.ghost{background:transparent;color:var(--fg);border:2px solid var(--bd);box-shadow:none}
+button.ghost small{color:var(--mut)}
+button:disabled{background:#8390a5;box-shadow:none;cursor:not-allowed;opacity:.75}
+.sep{display:flex;align-items:center;gap:10px;color:var(--mut);font-weight:700;font-size:13px;margin:14px 0 2px}
+.sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--bd)}
+.err{color:#ef4444;font-size:14px;font-weight:700;margin-top:10px;min-height:18px;text-align:center}
+.hint{text-align:center;color:var(--mut);font-size:14px;margin:10px 0 0}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bd)}
+.srow:last-child{border:0}.srow b{display:block}
+.stp{display:flex;align-items:center;gap:6px}
+.stp button{width:42px;height:42px;padding:0;margin:0;border-radius:14px;font-size:22px;background:var(--bd);color:var(--fg);box-shadow:none}
+.stp output{min-width:44px;text-align:center;font:800 20px Figtree,sans-serif;font-variant-numeric:tabular-nums}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+[type=range]{width:100%;padding:0;accent-color:#8b5cf6;margin:10px 0}
+.pres{display:flex;gap:8px}.pres button{margin:0;padding:10px 4px;font-size:14px;box-shadow:none;background:var(--bd);color:var(--fg)}
+.codes{display:flex;gap:6px;justify-content:center;margin:12px 0 4px}
+.codes span{flex:1;max-width:54px;padding:12px 0;border-radius:14px;background:var(--bg);border:2px solid var(--bd);font:400 28px 'Bowlby One',Impact,sans-serif;text-align:center}
+.pl{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd)}.pl:last-child{border:0}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 17px Figtree,sans-serif;flex:none}
+.nm{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd{font-style:normal;font-size:12px;font-weight:800;padding:4px 10px;border-radius:99px;color:#fff;background:#6b7a90;margin-left:6px;white-space:nowrap}
+.bd.y{background:#ca8a04}.bd.g{background:#16a34a}
+.lb{width:100%;max-width:340px;max-height:40vh;overflow:auto;text-align:left;background:rgba(128,128,128,.14);border-radius:18px;padding:12px 14px;margin:12px auto}
+.lbt{text-align:center;font-weight:800;margin-bottom:6px}
+.lr{display:flex;align-items:center;gap:10px;padding:7px 0}
+.rk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;background:#6b7a90;color:#fff;flex:none}
+.rk.r0{background:#f5b301;color:#2b2000}.rk.r1{background:#b8c2d1;color:#1c2430}.rk.r2{background:#c9803c}
+.lr b.ok{color:#22c55e}
+#g{position:fixed;inset:0;background:#0b1523;color:#fff}
+#cv{width:100%;height:100%;display:block}
+.chip{position:absolute;padding:8px 14px;border-radius:99px;font-weight:800;color:#fff;font-size:14px;background:rgba(10,20,36,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);white-space:nowrap;font-variant-numeric:tabular-nums}
+#c1{top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#8b5cf6,#6d28d9);font-size:19px;border-color:#c4b5fd66}
+#c2{top:calc(62px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%)}
+#c3{bottom:calc(14px + env(safe-area-inset-bottom,0px));left:12px}
+#c4{top:calc(10px + env(safe-area-inset-top,0px));left:10px;max-width:34vw;overflow:hidden;text-overflow:ellipsis}
+#ban{position:absolute;top:calc(108px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:14px;background:#facc15;color:#1a1300;font-weight:900;font-size:15px;white-space:nowrap;box-shadow:0 6px 20px #0008}
+#ban:empty{display:none}#ban.hot{background:#ef4444;color:#fff}#ban.on{animation:bn 1s ease-in-out infinite}
+@keyframes bn{50%{transform:translateX(-50%) scale(1.06)}}
+#caught{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:10px;width:auto;margin:0;padding:10px 14px;font-size:13px;border-radius:99px;background:#dc2626;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.ov{position:absolute;inset:0;background:#0b1523ee;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px;z-index:5;overflow:auto}
+.ov small{color:#ffffffb0;font-size:15px}
+.ov .big{font:400 clamp(44px,15vw,72px)/1 'Bowlby One',Impact,sans-serif;margin:10px 0}
+.ov p{max-width:30ch;color:#ffffffd0}.ov button{max-width:300px}
+#geo{position:fixed;inset:0;z-index:99;background:#0b1523f2;color:#fff;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:700}
+@media (prefers-reduced-motion:reduce){.sweep,.pulse,#ban.on{animation:none}}
+</style></head><body>
+<div id="app"></div>
+<div id="geo"></div>
+<script>
+const $=s=>document.querySelector(s),app=$('#app');
+const ROLE_MS=8000;
+const S={screen:'home',name:'',code:'',L:null,P:[],pos:null,uid:null,db:null,unsubs:[],err:'',geoErr:'',lastPush:0,
+ d:{max:6,play:15,prep:2,loc:3,hunters:1,radius:500,center:null}};
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const me=()=>S.P.find(p=>p.id===S.uid);
+const mmss=ms=>{ms=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(ms/60)).padStart(2,'0')+':'+String(ms%60).padStart(2,'0')};
+function mul(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
+/* ---------- lokasi ---------- */
+function geoUI(){const g=$('#geo');if(S.geoErr||!S.pos){g.style.display='flex';g.textContent=S.geoErr||'Menunggu lokasi... Hidupkan GPS dan izinkan akses lokasi.'}else g.style.display='none'}
+function startGeo(){
+ if(!navigator.geolocation){S.geoErr='Perangkat tidak mendukung lokasi.';return geoUI()}
+ navigator.geolocation.watchPosition(p=>{S.geoErr='';S.pos={lat:p.coords.latitude,lng:p.coords.longitude};geoUI();pushPos()},
+  ()=>{S.geoErr='Lokasi wajib dihidupkan. Hidupkan GPS, izinkan akses lokasi, lalu muat ulang halaman.';geoUI()},
+  {enableHighAccuracy:true,maximumAge:2000});geoUI()}
+function pushPos(){if(!S.code||!S.pos||!me()||Date.now()-S.lastPush<3000)return;S.lastPush=Date.now();
+ pdoc(S.uid).update({lat:S.pos.lat,lng:S.pos.lng,t:Date.now()}).catch(()=>{})}
+const pdoc=id=>S.db.doc(`lobbies/${S.code}/players/${id}`),ldoc=()=>S.db.doc('lobbies/'+S.code);
+
+/* ---------- layar ---------- */
+function setScreen(s){S.screen=s;S.err='';app.onclick=null;render()}
+function render(){({home,create,zone,join,lobby}[S.screen]||home)()}
+const hue=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%360;return h};
+const av=n=>`<span class=av style="background:hsl(${hue(n)} 62% 44%)">${esc((n.trim()[0]||'?').toUpperCase())}</span>`;
+function home(){app.innerHTML=`<div class=hero><svg viewBox="0 0 240 240" class=radar aria-hidden="true">
+<defs><linearGradient id=sw x1=0 y1=0 x2=1 y2=0><stop offset=0 stop-color="#2ed47a" stop-opacity=0 /><stop offset=1 stop-color="#2ed47a" stop-opacity=".6" /></linearGradient></defs>
+<circle cx=120 cy=120 r=112 class=rg /><circle cx=120 cy=120 r=76 class=rg /><circle cx=120 cy=120 r=38 class=rg /><path d="M120 8V232M8 120H232" class=rg />
+<g class=sweep><path d="M120 120 L120 8 A112 112 0 0 1 216 64 Z" fill="url(#sw)" /></g>
+<path d="M92 142 Q120 110 152 84" fill=none stroke="#ffffff" stroke-width=2 stroke-dasharray="4 6" opacity=".7" />
+<circle cx=158 cy=78 r=7 fill="#3da5ff" /><circle cx=158 cy=78 r=7 class=pulse /><circle cx=88 cy=146 r=8 fill="#ff4d5e" /></svg>
+<h1 class=logo>Kejar-<em>Kejaran</em></h1><p class=sub>Petak umpet dengan GPS sungguhan. Hunter memburu, hider bertahan.</p></div>
+<label class=field><input id=nm maxlength=14 value="${esc(S.name)}" placeholder="Nama panggilanmu" autocomplete=off></label>
+<button class=g id=bc>CREATE LOBBY<small>Jadi host dan atur aturan main</small></button>
+<div class=sep>atau</div>
+<button class=ghost id=bj>JOIN LOBBY<small>Masukkan kode dari host</small></button><div class=err id=er>${esc(S.err)}</div>`;
+ const chk=()=>{S.name=$('#nm').value.trim();if(!S.name){$('#er').textContent='Tulis nama panggilan dulu.';return false}if(!S.db){$('#er').textContent='Firebase belum diisi. Isi FIREBASE_CONFIG di index.html.';return false}return true};
+ $('#bc').onclick=()=>chk()&&setScreen('create');$('#bj').onclick=()=>chk()&&setScreen('join')}
+const stp=(k,l,min,max,v,u,st=1)=>`<div class=srow><div><b>${l}</b><small>${u}</small></div><div class=stp><button type=button data-k=${k} data-d=${-st} aria-label="Kurangi ${l}">&minus;</button><output id=f_${k} data-min=${min} data-max=${max}>${v}</output><button type=button data-k=${k} data-d=${st} aria-label="Tambah ${l}">+</button></div></div>`;
+function create(){const d=S.d;app.innerHTML=`<h2 class=ttl>Atur permainan</h2><div class=panel>
+${stp('max','Jumlah pemain',2,15,d.max,'maksimal 15')}${stp('hunters','Jumlah hunter',1,14,d.hunters,'sisanya jadi hider')}${stp('play','Waktu bermain',5,180,d.play,'menit',5)}${stp('prep','Waktu persiapan',1,30,d.prep,'menit, hider bersembunyi')}${stp('loc','Lokasi hider tampil tiap',1,30,d.loc,'menit')}</div>
+<button class=p id=bz>${d.center?'Zona: radius '+d.radius+' m':'Pengaturan zona'}<small>Atur lingkaran area bermain</small></button>
+<button class=g id=ok>KONFIRMASI</button><button class=ghost id=bk>Kembali</button><div class=err id=er>${esc(S.err)}</div>`;
+ const rd=()=>{for(const k of['max','hunters','play','prep','loc'])d[k]=+$('#f_'+k).textContent};
+ app.onclick=e=>{const b=e.target.closest('[data-k]');if(!b)return;const o=$('#f_'+b.dataset.k);o.textContent=Math.min(+o.dataset.max,Math.max(+o.dataset.min,+o.textContent+ +b.dataset.d));rd()};
+ $('#bz').onclick=()=>{rd();if(!S.pos)return $('#er').textContent='Lokasi belum didapat. Tunggu GPS aktif.';d.center={...S.pos};setScreen('zone')};
+ $('#bk').onclick=()=>setScreen('home');
+ $('#ok').onclick=async()=>{rd();let e='';
+  if(d.hunters>=d.max)e='Jumlah hunter harus lebih kecil dari jumlah pemain.';else if(!d.center)e='Atur zona dulu.';
+  if(e)return $('#er').textContent=e;
+  const code=Array.from({length:6},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.random()*32|0]).join('');
+  try{S.code=code;await ldoc().set({host:S.uid,hostName:S.name,max:d.max,hunters:d.hunters,play:d.play,prep:d.prep,loc:d.loc,center:d.center,radius:d.radius,status:'lobby'});
+   await pdoc(S.uid).set({name:S.name,ready:false,role:null,out:false});sub(code);setScreen('lobby')}catch(x){S.code='';$('#er').textContent='Gagal membuat lobby: '+(x.message||x)}}}
+function zone(){const d=S.d;app.innerHTML=`<h2 class=ttl>Zona permainan</h2><div class=panel style="padding:10px"><canvas id=zc style="width:100%;height:320px;border-radius:14px;display:block"></canvas></div>
+<div class=panel><div class=ph><b>Radius zona</b><b id=rv>${d.radius} m</b></div><input id=rs type=range min=50 max=3000 step=10 value=${d.radius} aria-label="Radius zona">
+<div class=pres>${[200,500,1000,2000].map(v=>`<button data-r=${v}>${v} m</button>`).join('')}</div></div><button class=g id=ok>KONFIRMASI</button>`;
+ const c=$('#zc'),w=c.width=c.clientWidth*2,h=c.height=640,x=c.getContext('2d');
+ const draw=()=>{x.fillStyle='#6f8f72';x.fillRect(0,0,w,h);const R=h*.4;tiles(x,w,h,d.center,R/d.radius,draw);
+  x.fillStyle='#5a0a1966';x.beginPath();x.rect(0,0,w,h);x.arc(w/2,h/2,R,0,7);x.fill('evenodd');
+  x.shadowColor='#ef4444';x.shadowBlur=14;x.strokeStyle='#ef4444';x.lineWidth=7;x.beginPath();x.arc(w/2,h/2,R,0,7);x.stroke();x.shadowBlur=0;
+  x.beginPath();x.arc(w/2,h/2,12,0,7);x.fillStyle='#000';x.fill();x.strokeStyle='#fff';x.lineWidth=4;x.stroke();
+  x.fillStyle='#000b';x.fillRect(12,12,430,44);x.fillStyle='#fff';x.font='bold 26px sans-serif';x.fillText('Pusat zona = lokasimu sekarang',24,43)};
+ draw();const set=v=>{d.radius=+v;$('#rv').textContent=d.radius+' m';$('#rs').value=v;draw()};
+ $('#rs').oninput=e=>set(e.target.value);app.onclick=e=>{const b=e.target.closest('[data-r]');if(b)set(b.dataset.r)};$('#ok').onclick=()=>setScreen('create')}
+function join(){app.innerHTML=`<h2 class=ttl>Join lobby</h2><div class=panel><small>Kode lobby (6 karakter)</small>
+<label class=field style="margin:8px 0 0"><input id=cd maxlength=6 autocomplete=off autocapitalize=characters style="text-transform:uppercase;text-align:center;font:400 30px 'Bowlby One',Impact,sans-serif;letter-spacing:8px" placeholder="ABC123"></label><div class=err id=er>${esc(S.err)}</div></div>
+<button class=g id=ok>JOIN</button><button class=ghost id=bk>Kembali</button>`;
+ $('#bk').onclick=()=>setScreen('home');
+ $('#ok').onclick=async()=>{const code=$('#cd').value.trim().toUpperCase();if(code.length!==6)return $('#er').textContent='Kode harus 6 karakter.';
+  try{S.code=code;const s=await ldoc().get();if(!s.exists){S.code='';return $('#er').textContent='Kode tidak cocok. Cek lagi huruf dan angkanya.'}
+   const L=s.data();if(L.status!=='lobby'){S.code='';return $('#er').textContent='Permainan sudah dimulai.'}
+   const q=await S.db.collection(`lobbies/${code}/players`).get();if(q.size>=L.max){S.code='';return $('#er').textContent='Lobby sudah penuh.'}
+   await pdoc(S.uid).set({name:S.name,ready:false,role:null,out:false});sub(code);setScreen('lobby')}catch(x){S.code='';$('#er').textContent='Gagal join: '+(x.message||x)}}}
+function lobby(){const L=S.L;if(!L)return;const m=me(),host=L.host===S.uid,playing=L.status==='play';
+ const nr=S.P.filter(p=>p.ready).length,allReady=S.P.length>=2&&nr===S.P.length;
+ app.innerHTML=`<div class=top><small>Lobby milik</small><h2>${esc(L.hostName)}</h2></div>
+<div class=panel style="text-align:center"><small>Kode lobby, bagikan ke teman</small><div class=codes>${S.code.split('').map(c=>`<span>${c}</span>`).join('')}</div><button class=ghost id=cp style="margin-top:10px;padding:10px">Salin kode</button></div>
+<div class=panel><div class=ph><b>Pemain</b><small>${S.P.length}/${L.max}${playing?'':' | siap '+nr}</small></div>
+${S.P.map(p=>`<div class=pl>${av(p.name)}<span class=nm>${esc(p.name)}${p.id===L.host?'<i class="bd y">HOST</i>':''}</span>${playing?(p.out?'<i class=bd>TERTANGKAP</i>':''):`<i class="bd ${p.ready?'g':''}">${p.ready?'READY':'BELUM'}</i>`}</div>`).join('')}</div>
+${playing?`<div class=panel>Kamu sudah keluar dari permainan. Permainan masih berjalan untuk pemain lain.</div>${lb()}<button id=bx class=ghost>Kembali ke beranda</button>`:
+`<button class=g id=rd>${m&&m.ready?'BATAL READY':'READY'}</button>${host?`<button id=st class=g ${allReady?'':'disabled'}>START</button><p class=hint>${S.P.length<2?'Minimal 2 pemain untuk mulai.':(allReady?'Semua pemain siap.':'Menunggu '+(S.P.length-nr)+' pemain siap.')}</p>`:'<p class=hint>Menunggu host memulai permainan.</p>'}`}`;
+ const rd=$('#rd');if(rd)rd.onclick=()=>pdoc(S.uid).update({ready:!(m&&m.ready)});
+ const st=$('#st');if(st)st.onclick=startGame;const bx=$('#bx');if(bx)bx.onclick=reset;
+ $('#cp').onclick=()=>{try{navigator.clipboard.writeText(S.code);$('#cp').textContent='Tersalin'}catch(e){}}}
+function lb(){const L=S.L,P=plan(L),hs=S.P.filter(p=>p.role==='hider').map(p=>({n:p.name,s:!p.out,v:Math.max(0,(p.out?(p.outAt||Date.now()):Math.min(Date.now(),P.tEnd))-P.t0)}));
+ hs.sort((a,b)=>(b.s-a.s)||(b.v-a.v));
+ return `<div class=lb><div class=lbt>Leaderboard hider</div>${hs.map((h,i)=>`<div class=lr><span class="rk r${Math.min(i,3)}">${i+1}</span><span class=nm>${esc(h.n)}</span><b class="${h.s?'ok':''}">${h.s?'Bertahan':'Tertangkap '+mmss(h.v)}</b></div>`).join('')}</div>`}
+async function startGame(){const ps=S.P.slice().sort(()=>Math.random()-.5),h=Math.min(S.L.hunters,ps.length-1);
+ await Promise.all(ps.map((p,i)=>pdoc(p.id).update({role:i<h?'hunter':'hider',out:false,outAt:null,lat:null,lng:null})));
+ await ldoc().update({status:'play',startAt:Date.now()+1500,seed:Math.random()*2147483647|0})}
+function reset(){S.unsubs.forEach(f=>f());S.unsubs=[];S.code='';S.L=null;S.P=[];clearInterval(S.tm);S.gameBuilt=false;setScreen('home')}
+function sub(code){S.unsubs.forEach(f=>f());S.unsubs=[
+ S.db.doc('lobbies/'+code).onSnapshot(s=>{S.L=s.exists?s.data():null;route()}),
+ S.db.collection(`lobbies/${code}/players`).onSnapshot(q=>{S.P=q.docs.map(d=>({id:d.id,...d.data()}));route()})]}
+function route(){const L=S.L,m=me();if(!L||!m)return;
+ if(L.status==='play'&&m.role&&!m.out){if(!S.gameBuilt)buildGame()}
+ else{if(S.gameBuilt){S.gameBuilt=false;clearInterval(S.tm)}if(S.screen!=='lobby')S.screen='lobby';lobby()}}
+
+/* ---------- rencana zona ---------- */
+function plan(L){const t0=L.startAt+ROLE_MS+L.prep*60000,T=L.play*60000,rnd=mul(L.seed);
+ const radii=[];let r=L.radius;while(r>15){r=Math.max(15,r*.6);radii.push(r)}
+ let tot=0;radii.forEach((_,k)=>tot+=30+15*k+40);const f=tot?Math.max(1,T-240000)/tot:1;
+ let t=t0+120000,c=L.center,cr=L.radius;const st=[];
+ radii.forEach((gr,k)=>{const d=Math.sqrt(rnd())*(cr-gr),a=rnd()*6.2832,w=(30+15*k)*1000*f,s=40000*f;
+  const gc={lat:c.lat+d*Math.cos(a)/110540,lng:c.lng+d*Math.sin(a)/(111320*Math.cos(c.lat*Math.PI/180))};
+  st.push({fc:c,fr:cr,gc,gr,t1:t,t2:t+w,t3:t+w+s});t+=w+s;c=gc;cr=gr});
+ const rev=[];for(let x=t0+L.loc*60000;x<t-1000;x+=L.loc*60000)rev.push(x);rev.push(t);
+ return{t0,tEnd:t0+T,tFinal:t,st,rev,fin:{c,r:cr}}}
+function zoneAt(P,L,now){const first=P.t0+120000;
+ if(now<first)return{red:{c:L.center,r:L.radius},green:null,lab:'ZONA PERTAMA MUNCUL',tg:first};
+ for(const s of P.st)if(now<s.t3){const g={c:s.gc,r:s.gr};
+  if(now<s.t2)return{red:{c:s.fc,r:s.fr},green:g,lab:'ZONA MENGECIL DALAM',tg:s.t2};
+  const p=(now-s.t2)/(s.t3-s.t2);return{red:{c:{lat:s.fc.lat+(s.gc.lat-s.fc.lat)*p,lng:s.fc.lng+(s.gc.lng-s.fc.lng)*p},r:s.fr+(s.gr-s.fr)*p},green:g,lab:'ZONA SEDANG MENGECIL',tg:s.t3}}
+ return{red:P.fin,green:null,lab:'ZONA FINAL',tg:P.tEnd}}
+
+/* ---------- layar permainan ---------- */
+function buildGame(){S.gameBuilt=true;S.screen='game';S.ovKey=null;try{navigator.wakeLock&&navigator.wakeLock.request('screen')}catch(e){}
+ S.plan=plan(S.L);const m=me(),hid=m.role==='hider';
+ app.innerHTML=`<div id=g><canvas id=cv></canvas><div class=chip id=c4></div><div class=chip id=c1></div><div class=chip id=c2></div><div id=ban></div><div class=chip id=c3></div>
+${hid?'<button id=caught>TERTANGKAP?</button>':''}<div id=md></div><div id=ov></div></div>`;
+ const cv=$('#cv');const fit=()=>{const d=devicePixelRatio||1;cv.width=innerWidth*d;cv.height=innerHeight*d};fit();onresize=fit;
+ if(hid)$('#caught').onclick=()=>{$('#md').innerHTML=`<div class=ov style="z-index:6;background:#0b1523e8"><div class=panel style="color:var(--fg);max-width:320px;width:100%"><h3>Apakah kamu sudah tertangkap?</h3><button class=r id=y>IYA</button><button class=ghost id=n>TIDAK</button></div></div>`;
+  $('#n').onclick=()=>$('#md').innerHTML='';$('#y').onclick=()=>{$('#md').innerHTML='';pdoc(S.uid).update({out:true,outAt:Date.now()})}};
+ clearInterval(S.tm);S.tm=setInterval(tick,250);tick()}
+function tick(){const L=S.L,m=me();if(!L||!m||!S.gameBuilt||!$('#cv'))return;const P=S.plan,now=Date.now(),hid=m.role==='hider';
+ const hiders=S.P.filter(p=>p.role==='hider'),alive=hiders.filter(p=>!p.out);
+ const over=now>=P.tEnd||(hiders.length&&!alive.length),roleEnd=L.startAt+ROLE_MS,ov=$('#ov');
+ const set=(k,h)=>{if(S.ovKey!==k){S.ovKey=k;ov.innerHTML=h}};
+ if(over){const win=!alive.length;
+  set('over',`<div class=ov><small>Permainan selesai</small><div class=big style="color:${win?'#ff4d5e':'#3da5ff'}">${win?'HUNTER MENANG':'HIDER MENANG'}</div><p>${win?'Semua hider tertangkap.':'Waktu habis, masih ada hider yang selamat.'}</p>${lb()}<button id=fin class=g>SELESAI</button></div>`);
+  $('#fin').onclick=reset;return}
+ if(now<roleEnd){const c=hid?'#3da5ff':'#ff4d5e',lbl=hid?'HIDER':'HUNTER';
+  if(now<L.startAt+5000){const h=Math.floor(now/120)%2;set('sh'+Math.floor(now/120),`<div class=ov><small>Mengacak role...</small><div class=big style="color:${h?'#ff4d5e':'#3da5ff'}">${h?'HUNTER':'HIDER'}</div></div>`)}
+  else set('role',`<div class=ov style="background:radial-gradient(circle at 50% 45%,${c}66,#0b1523f2 70%)"><small>Role kamu</small><div class=big style="color:${c};text-shadow:0 0 40px ${c}">${lbl}</div><p>${hid?'Sembunyi sebelum waktu persiapan habis.':'Tunggu di tempat sampai waktu persiapan habis.'}</p></div>`)}
+ else set('none','');
+ const Z=zoneAt(P,L,now),prep=now<P.t0;
+ const nr=P.rev.find(x=>x+5000>now),show=nr!==undefined&&now>=nr&&now<nr+5000,nxt=P.rev.find(x=>x>now);
+ const c4=$('#c4');c4.style.background=hid?'#1d6fd1':'#c2263a';c4.textContent=(hid?'HIDER':'HUNTER')+' | '+m.name;
+ $('#c1').textContent=prep?'PERSIAPAN '+mmss(P.t0-now):(nxt?'LOKASI HIDER '+mmss(nxt-now):'LOKASI TERAKHIR SUDAH LEWAT');
+ $('#c2').textContent=Z.lab+' '+mmss(Z.tg-now);
+ $('#c3').textContent='Sisa '+mmss(P.tEnd-now)+' | Hider '+alive.length;
+ const ban=$('#ban');ban.textContent=show?(hid?'LOKASI ANDA TELAH DITAMPILKAN':'LOKASI HIDER DITAMPILKAN'):(prep&&!hid?'HUNTER DILARANG BERGERAK':(prep?'SEMBUNYI SEKARANG':''));
+ ban.className=show?'on':(prep&&!hid?'hot':'');
+ draw(Z,show,hid,m,now)}
+function draw(Z,show,hid,m,now){const cv=$('#cv'),x=cv.getContext('2d'),w=cv.width,h=cv.height,d=devicePixelRatio||1,c=Z.red.c,ph=(now%1600)/1600;
+ const my=110540,mx=111320*Math.cos(c.lat*Math.PI/180),R=Math.max(Z.red.r*1.15,40),sc=Math.min(w,h)/2/R;
+ const X=p=>w/2+(p.lng-c.lng)*mx*sc,Y=p=>h/2-(p.lat-c.lat)*my*sc;
+ x.fillStyle='#6f8f72';x.fillRect(0,0,w,h);tiles(x,w,h,c,sc,()=>{});
+ let step=[5,10,20,50,100,200,500,1000,2000].find(s=>s*sc>90*d)||2000;x.strokeStyle='#ffffff26';x.lineWidth=d;
+ for(let v=-Math.ceil(w/sc/step)*step;v<w/sc;v+=step){const px=w/2+v*sc;x.beginPath();x.moveTo(px,0);x.lineTo(px,h);x.stroke()}
+ for(let v=-Math.ceil(h/sc/step)*step;v<h/sc;v+=step){const py=h/2+v*sc;x.beginPath();x.moveTo(0,py);x.lineTo(w,py);x.stroke()}
+ const cx=X({lng:c.lng}),cy=Y({lat:c.lat});
+ x.fillStyle='rgba(90,10,25,.45)';x.beginPath();x.rect(0,0,w,h);x.arc(cx,cy,Z.red.r*sc,0,7);x.fill('evenodd');
+ x.lineWidth=5*d;x.shadowBlur=12*d;x.shadowColor='#ef4444';x.strokeStyle='#ef4444';x.beginPath();x.arc(cx,cy,Z.red.r*sc,0,7);x.stroke();
+ if(Z.green){x.shadowColor='#22c55e';x.strokeStyle='#22c55e';x.beginPath();x.arc(X(Z.green.c),Y(Z.green.c),Z.green.r*sc,0,7);x.stroke()}
+ x.shadowBlur=0;
+ if(hid&&S.pos){const t=Z.green?Z.green.c:Z.red.c;x.setLineDash([12*d,10*d]);x.strokeStyle='#fff';x.lineWidth=3*d;x.beginPath();x.moveTo(X(S.pos),Y(S.pos));x.lineTo(X(t),Y(t));x.stroke();x.setLineDash([])}
+ const ping=(p,col,ring)=>{const px=X(p),py=Y(p);x.beginPath();x.arc(px,py,(10+22*ph)*d,0,7);x.strokeStyle=col;x.globalAlpha=1-ph;x.lineWidth=3*d;x.stroke();x.globalAlpha=1;
+  x.beginPath();x.arc(px,py,10*d,0,7);x.fillStyle=col;x.fill();x.strokeStyle=ring;x.lineWidth=3*d;x.stroke()};
+ if(!hid&&show)for(const p of S.P)if(p.role==='hider'&&!p.out&&p.lat!=null)ping(p,'#facc15','#000');
+ if(S.pos)ping(S.pos,'#000',hid&&show?'#facc15':'#fff');
+ const bw=step*sc;x.fillStyle='#fff';x.shadowColor='#000';x.shadowBlur=4*d;x.fillRect(14*d,h-64*d,bw,4*d);x.font=`bold ${13*d}px sans-serif`;x.fillText(step+' m',14*d,h-70*d);x.shadowBlur=0}
+const TC={};
+function tiles(x,w,h,c,sc,cb){const lat=c.lat*Math.PI/180,m0=156543.03*Math.cos(lat),z=Math.max(2,Math.min(19,Math.round(Math.log2(m0*sc)))),n=2**z;
+ const wx=(c.lng+180)/360*256*n,wy=(1-Math.log(Math.tan(lat)+1/Math.cos(lat))/Math.PI)/2*256*n,k=m0/n*sc,T=256*k;
+ const x0=Math.floor((wx-w/2/k)/256),x1=Math.floor((wx+w/2/k)/256),y0=Math.max(0,Math.floor((wy-h/2/k)/256)),y1=Math.min(n-1,Math.floor((wy+h/2/k)/256));
+ if((x1-x0+1)*(y1-y0+1)>60)return;
+ for(let tx=x0;tx<=x1;tx++)for(let ty=y0;ty<=y1;ty++){const u=`https://tile.openstreetmap.org/${z}/${((tx%n)+n)%n}/${ty}.png`;let im=TC[u];
+  if(!im){im=TC[u]=new Image();im.onload=cb;im.src=u}
+  if(im.complete&&im.naturalWidth)x.drawImage(im,w/2+(tx*256-wx)*k,h/2+(ty*256-wy)*k,T+1,T+1)}
+ x.fillStyle='#000a';x.font='bold 22px sans-serif';x.fillText('\u00a9 OpenStreetMap',w-230,h-14)}
+
+/* ---------- mulai ---------- */
+/* ISI DARI FIREBASE CONSOLE (Project settings > Your apps > Web app) */
+const FIREBASE_CONFIG={apiKey:"ISI_API_KEY",authDomain:"ISI.firebaseapp.com",projectId:"ISI_PROJECT_ID",appId:"ISI_APP_ID"};
+(()=>{try{S.uid=localStorage.getItem('uid')}catch(e){}
+ if(!S.uid){S.uid='p'+Math.random().toString(36).slice(2,10);try{localStorage.setItem('uid',S.uid)}catch(e){}}
+ try{if(!FIREBASE_CONFIG.apiKey.startsWith('ISI')){firebase.initializeApp(FIREBASE_CONFIG);S.db=firebase.firestore()}}catch(e){S.err='Firebase gagal: '+e.message}
+ if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+ document.addEventListener('visibilitychange',()=>{if(S.gameBuilt&&document.visibilityState==='visible')try{navigator.wakeLock&&navigator.wakeLock.request('screen')}catch(e){}});
+ startGeo();render()})();
+</script></body></html>
